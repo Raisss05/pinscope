@@ -4,6 +4,7 @@ import re
 
 import pandas as pd
 import streamlit as st
+import database as db
 
 st.set_page_config(
     page_title="PinScope - Pinterest SEO",
@@ -150,6 +151,8 @@ if uploaded_file is not None:
                 ["keyword", "category", "sample_score"]
             ].reset_index(drop=True)
 
+            db.save_keyword_dataset(st.session_state.keyword_data)
+
             st.sidebar.success(
                 f"Loaded {len(imported_df)} keywords."
             )
@@ -157,14 +160,21 @@ if uploaded_file is not None:
     except Exception as error:
         st.sidebar.error(f"Could not read CSV: {error}")
 
-# Use the imported data when available.
+# Load the keyword dataset from SQLite when no upload
+# has been made during the current session.
+if st.session_state.keyword_data is None:
+    stored_data = db.load_keyword_dataset()
+
+    if not stored_data.empty:
+        st.session_state.keyword_data = stored_data
+
 if st.session_state.keyword_data is not None:
     df = st.session_state.keyword_data.copy()
 
 
-# Store saved keywords for the current session.
+# Load saved keywords from the database.
 if "saved_keywords" not in st.session_state:
-    st.session_state.saved_keywords = []
+    st.session_state.saved_keywords = db.load_saved_keywords()
 
 # Sidebar navigation.
 st.sidebar.title("📌 PinScope")
@@ -269,10 +279,9 @@ elif page == "Keyword Explorer":
     )
 
     if st.button("Save selected keywords"):
-        for word in selected:
-            if word not in st.session_state.saved_keywords:
-                st.session_state.saved_keywords.append(word)
-        st.success("Your selected keywords have been saved.")
+    db.save_keywords(selected)
+    st.session_state.saved_keywords = db.load_saved_keywords()
+    st.success("Your selected keywords have been saved.")
 
     st.download_button(
         "Export search results",
@@ -344,8 +353,9 @@ elif page == "Saved Keywords":
         )
 
         if st.button("Clear saved keywords"):
-            st.session_state.saved_keywords = []
-            st.rerun()
+    db.clear_saved_keywords()
+    st.session_state.saved_keywords = []
+    st.rerun()
 
 st.divider()
 st.caption(
