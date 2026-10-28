@@ -83,11 +83,84 @@ def create_title(keyword, style):
 
     return random.choice(templates[style])
 
+
 # Load our starter dataset.
 df = pd.DataFrame(
     SAMPLE_DATA,
     columns=["keyword", "category", "sample_score"],
 )
+
+# Allow users to upload their own keyword CSV.
+if "keyword_data" not in st.session_state:
+    st.session_state.keyword_data = None
+
+uploaded_file = st.sidebar.file_uploader(
+    "Import keyword CSV",
+    type=["csv"],
+    help="CSV must include a keyword column.",
+)
+
+if uploaded_file is not None:
+    try:
+        imported_df = pd.read_csv(uploaded_file)
+        imported_df.columns = [
+            str(column).strip().lower()
+            for column in imported_df.columns
+        ]
+
+        if "keyword" not in imported_df.columns:
+            st.sidebar.error(
+                "Your CSV needs a column named keyword."
+            )
+        else:
+            if "category" not in imported_df.columns:
+                imported_df["category"] = "Uncategorized"
+
+            if "sample_score" not in imported_df.columns:
+                imported_df["sample_score"] = None
+
+            imported_df["keyword"] = (
+                imported_df["keyword"]
+                .fillna("")
+                .astype(str)
+                .str.strip()
+                .str.lower()
+            )
+
+            imported_df["category"] = (
+                imported_df["category"]
+                .fillna("Uncategorized")
+                .astype(str)
+            )
+
+            imported_df["sample_score"] = pd.to_numeric(
+                imported_df["sample_score"],
+                errors="coerce",
+            )
+
+            imported_df = imported_df[
+                imported_df["keyword"] != ""
+            ]
+
+            imported_df = imported_df.drop_duplicates(
+                subset=["keyword"]
+            )
+
+            st.session_state.keyword_data = imported_df[
+                ["keyword", "category", "sample_score"]
+            ].reset_index(drop=True)
+
+            st.sidebar.success(
+                f"Loaded {len(imported_df)} keywords."
+            )
+
+    except Exception as error:
+        st.sidebar.error(f"Could not read CSV: {error}")
+
+# Use the imported data when available.
+if st.session_state.keyword_data is not None:
+    df = st.session_state.keyword_data.copy()
+
 
 # Store saved keywords for the current session.
 if "saved_keywords" not in st.session_state:
