@@ -278,10 +278,12 @@ elif page == "Keyword Explorer":
         choices,
     )
 
+    
     if st.button("Save selected keywords"):
-    db.save_keywords(selected)
-    st.session_state.saved_keywords = db.load_saved_keywords()
-    st.success("Your selected keywords have been saved.")
+        db.save_keywords(selected)
+        st.session_state.saved_keywords = db.load_saved_keywords()
+        st.success("Your selected keywords have been saved.")
+
 
     st.download_button(
         "Export search results",
