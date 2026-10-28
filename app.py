@@ -352,6 +352,7 @@ elif page == "Saved Keywords":
             mime="text/csv",
         )
 
+        
         if st.button("Clear saved keywords"):
     db.clear_saved_keywords()
     st.session_state.saved_keywords = []
